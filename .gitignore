@@ -1,3 +1,12 @@
-/.DS_Store
-/Videos/.DS_Store
-/Videos/N3DV/.DS_Store
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Source media. The page only serves Videos/site and Videos/previews, which are
+# generated from these by tools/build-media.sh. Remove these rules to track the
+# full-resolution clips (large: several hundred MB).
+/Videos/Our_bench/
+/Videos/N3DV/
+
+# Paper sources / archives held locally
+Pacific_Graphics_2026_submission.zip

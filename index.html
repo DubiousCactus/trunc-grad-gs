@@ -1,256 +1,579 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic scene reconstruction - side-by-side comparison</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/html.min.js"></script>
-    <script src="./js/video-compare.min.js"></script>
-    <style>
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TruncGradGS: Improved 3D Gaussian Splatting via Truncated Gradient Updates</title>
+<meta name="description" content="TruncGradGS replaces the vanishing tails of the 2D Gaussian derivative with a continuous linear surrogate, improving 3D and 4D Gaussian Splatting across random and COLMAP initializations. Includes a new six-scene synthetic benchmark for dynamic Gaussian Splatting.">
+<meta name="theme-color" content="#1f5d99">
+<meta property="og:title" content="TruncGradGS: Improved 3D Gaussian Splatting via Truncated Gradient Updates">
+<meta property="og:description" content="A piecewise truncated gradient field that fixes the vanishing-gradient problem of tiled Gaussian rasterization, plus a new synthetic benchmark for dynamic Gaussian Splatting.">
+<meta property="og:type" content="article">
 
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-        }
-        .demo-section {
-            margin-bottom: 40px;
-            max-width: 700px;
-            padding: 20px;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        h1 {
-            padding-top: 1rem;
-            padding-bottom: 2rem;
-            padding-left: 4rem;
-            margin-bottom: 1rem;
-        }
-        h2 {
-            margin-bottom: 2rem;
-        }
-        pre {
-            background: #f6f8fa;
-            padding: 16px;
-            border-radius: 6px;
-            margin: 20px 0;
-        }
-        .demo-container {
-            margin: 20px 0;
-        }
-        
-        /* Add new tab styles */
-        .tabs {
-            max-width: 700px;
-            margin: 20px auto;
-        }
-        
-        .tab-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .tab-button {
-            padding: 10px 20px;
-            border: none;
-            background: #f0f0f0;
-            cursor: pointer;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        
-        .tab-button.active {
-            background: #667eea;
-            color: white;
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-    </style>
+<link rel="stylesheet" href="./css/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+        onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}],throwOnError:false});"></script>
+<script src="./js/main.js" defer></script>
 </head>
 <body>
-    <div class="header">
-        <h1>Dynamic scene reconstruction - side-by-side comparison</h1>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="nav-brand" href="#top">TruncGradGS</a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#overview">Overview</a>
+      <a href="#method">Method</a>
+      <a href="#comparisons">Comparisons</a>
+      <a href="#dataset">Benchmark</a>
+      <a href="#qualitative">Qualitative</a>
+      <a href="#results">Results</a>
+      <a href="#citation">Citation</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ===================================================== hero + abstract -->
+<section class="hero">
+  <div class="wrap">
+    <p class="eyebrow">arXiv preprint &middot; September 2026</p>
+    <h1 class="hero-title">TruncGradGS: Improved 3D Gaussian Splatting via
+      <span class="title-accent">Truncated Gradient Updates</span></h1>
+
+    <p class="authors">
+      Théo Morales<sup>1</sup> &nbsp;·&nbsp; Nhat-Quynh Le-Pham<sup>1</sup> &nbsp;·&nbsp;
+      Robin Atkins<sup>2</sup> &nbsp;·&nbsp; Binh-Son Hua<sup>1</sup>
+    </p>
+    <p class="affiliations">
+      <sup>1</sup>Trinity College Dublin &nbsp;·&nbsp; <sup>2</sup>Dolby Laboratories
+    </p>
+
+    <div class="actions">
+      <a class="btn btn-primary" href="https://arxiv.org/abs/2609.03534">arXiv:2609.03534</a>
+      <span class="btn" aria-disabled="true">Code <span class="tag">Soon</span></span>
+      <span class="btn" aria-disabled="true">Dataset <span class="tag">Soon</span></span>
     </div>
-    
-    <div class="tabs">
-        <div class="tab-buttons">
-            <button class="tab-button active" data-tab="tree">Windy tree</button>
-            <button class="tab-button" data-tab="underwater">Underwater</button>
-            <button class="tab-button" data-tab="cup">Cup</button>
-            <button class="tab-button" data-tab="neon">Neon</button>
-            <button class="tab-button" data-tab="alley-cem">Alley (1)</button>
-            <button class="tab-button" data-tab="alley-4dgs">Alley (2)</button>
-            <button class="tab-button" data-tab="bouncy_balls">Bouncy balls</button>
-            <button class="tab-button" data-tab="flame_steak">Flame steak</button>
-            <button class="tab-button" data-tab="coffee_martini">Coffee martini</button>
+
+    <p class="abstract">
+      3D Gaussian Splatting has become a de facto scene representation for novel view
+      synthesis, yet robustly learning 3D Gaussian primitives from visual input remains
+      challenging. Standard optimization relies on gradient-based updates, but a common
+      issue is the gradient vanishing phenomenon: a pixel far from a Gaussian primitive
+      often has diminishing gradient magnitudes to influence primitive attributes,
+      resulting in suboptimal scene reconstruction. In this paper, we propose a method to
+      address gradient vanishing with a piecewise truncated gradient formulation that
+      improves the optimization stability and robustness to initializations. We show that
+      our method consistently improves 3D Gaussian Splatting with random and COLMAP
+      initializations while being generalizable across static and dynamic Gaussian
+      Splatting. As a by-product, we also examine the limitations of current benchmarks
+      for dynamic scenes, and introduce a novel dataset for benchmarking dynamic Gaussian
+      Splatting using synthetic 3D scenes. We demonstrate the effectiveness of our method
+      in both static and dynamic settings for the public benchmarks and our proposed
+      dataset.
+    </p>
+
+  </div>
+</section>
+
+<!-- ============================================================ overview -->
+<section id="overview">
+  <div class="wrap">
+    <h2>Overview</h2>
+    <div class="callout">
+      <p>
+        The method is a backward-pass change: it plugs into the rasterizer of an existing
+        Gaussian Splatting pipeline, adds no cost at inference, and improves both static
+        and dynamic reconstruction. We also introduce a six-scene, path-traced benchmark
+        for dynamic Gaussian Splatting — 300 frames per scene, 25–45 cameras and up to four
+        test views each — where the baselines fail on large spatio-temporal divergence.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== method -->
+<section id="method">
+  <div class="wrap">
+    <h2>Method</h2>
+    <p class="section-intro">
+      We keep the true Gaussian derivative inside the splat isocontour and continue it with
+      a linear surrogate outside, so a primitive keeps receiving spatial gradients from
+      pixels far from its mean.
+    </p>
+
+    <div class="eq">
+      \[ \widetilde{\nabla G} = \begin{cases}
+           \dfrac{\partial G}{\partial \Delta_x} & \text{if } -2\log G < -2\log \tau \\[2mm]
+           \min\left(m\,x + b,\ \dfrac{\partial G}{\partial \Delta_x}\right)
+             & \text{if } \dfrac{\partial}{\partial \Delta_x}G(b) < 0 \\[2mm]
+           \max\left(-m\,x + b,\ \dfrac{\partial G}{\partial \Delta_x}\right)
+             & \text{if } \dfrac{\partial}{\partial \Delta_x}G(b) > 0
+         \end{cases} \]
+    </div>
+
+    <p>
+      The cut-off is the isocontour of the density threshold \(\tau\), which we set to the
+      rasterizer's alpha discard threshold; the slope \(m\) controls how fast the surrogate
+      decays with distance. Because the field is piecewise linear and exponential, the only
+      possible discontinuity is at the boundary. We remove it by matching the surrogate to
+      the true derivative at the cut-off point \(x_b\), whose squared Mahalanobis distance
+      is fixed by \(\tau\):
+    </p>
+
+    <div class="eq">
+      \[ \frac{\partial}{\partial \Delta_x}G(x_b) = m\,x_b + b
+         \quad\Longrightarrow\quad
+         b = \frac{\partial}{\partial \Delta_x}G(x_b) - m\,x_b,
+         \qquad (\mu - x_b)^T\Sigma^{-1}(\mu - x_b) = -2\log \tau \]
+    </div>
+
+    <div class="figure-row">
+      <figure>
+        <img src="./figures/truncated-gradient-field.png"
+             alt="Left: derivative of a 2D Gaussian with respect to its mean along x and y, nearly zero outside the splat. Right: the piecewise truncated gradient field, which keeps the true derivative inside the isocontour and follows a linear surrogate outside, giving a wider support with stronger far-field signals."
+             width="1400" height="1036" loading="lazy" decoding="async">
+        <figcaption>
+          <b>Figure 1. The truncated gradient field.</b> A 2D Gaussian that splats at
+          the centre of the image. <i>Left:</i> derivative of the Gaussian with respect to
+          its mean on the <i>x</i> and <i>y</i> axes — near zero for any pixel outside the local
+          support. <i>Right:</i> our piecewise field for the same splat: the true Gaussian
+          derivative inside the isocontour, a linear surrogate outside, matched at the
+          contour boundary so the field stays continuous. The isocontour is set by a
+          density threshold.
+        </figcaption>
+      </figure>
+      <figure>
+        <img src="./figures/piecewise-gradient-1d.png"
+             alt="One-dimensional illustration: between the cut-off points the field follows the true partial derivative; beyond them it becomes a linear surrogate converging towards the true gradient."
+             width="1600" height="780" loading="lazy" decoding="async">
+        <figcaption>
+          <b>Figure 2. Piecewise gradient in 1D.</b> Between the cut-off points the field
+          follows the true partial derivative; beyond them it becomes a linear surrogate
+          that converges back towards it. Matching the two pieces at the cut-off keeps the
+          field continuous.
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================= comparisons -->
+<section id="comparisons">
+  <div class="wrap">
+    <h2>Side-by-side comparisons</h2>
+    <p class="section-intro">
+      Squeeze-and-slide between a baseline and the same baseline with our truncated
+      gradient. Move your mouse or drag your finger across a clip to move the divider.
+      Each clip pair loops; nothing is streamed until you open a scene.
+    </p>
+
+    <div class="viewer-frame">
+      <div class="tablist" role="tablist" aria-label="Comparison scenes">
+        <button class="tab" role="tab" id="tab-tree" aria-controls="panel-tree" aria-selected="true" tabindex="0">Windy tree</button>
+        <button class="tab" role="tab" id="tab-underwater" aria-controls="panel-underwater" aria-selected="false" tabindex="-1">Underwater</button>
+        <button class="tab" role="tab" id="tab-cup" aria-controls="panel-cup" aria-selected="false" tabindex="-1">Cup</button>
+        <button class="tab" role="tab" id="tab-neon" aria-controls="panel-neon" aria-selected="false" tabindex="-1">Neon city</button>
+        <button class="tab" role="tab" id="tab-alley-cem" aria-controls="panel-alley-cem" aria-selected="false" tabindex="-1">Alley · CEM-4DGS</button>
+        <button class="tab" role="tab" id="tab-alley-4dgs" aria-controls="panel-alley-4dgs" aria-selected="false" tabindex="-1">Alley · 4DGS</button>
+        <button class="tab" role="tab" id="tab-bouncy" aria-controls="panel-bouncy" aria-selected="false" tabindex="-1">Bouncy balls</button>
+        <button class="tab" role="tab" id="tab-flame" aria-controls="panel-flame" aria-selected="false" tabindex="-1">Flame steak</button>
+        <button class="tab" role="tab" id="tab-coffee" aria-controls="panel-coffee" aria-selected="false" tabindex="-1">Coffee martini</button>
+      </div>
+
+      <div class="panel is-active" id="panel-tree" role="tabpanel" aria-labelledby="tab-tree">
+        <div class="panel-head">
+          <h3>Windy tree</h3><span class="baseline">4DGS · our benchmark</span>
+          <p>Vegetation in motion; thin structures and large parallax.</p>
         </div>
-
-        <div class="tab-content active" data-tab="tree">
-            <h2>4DGS - Windy tree</h2>
-            <p>Move your mouse or touch the screen to slide the white divider line.</p>
-            <div class="vc-slider-container">
-                <video playsinline autoplay muted loop vc-caption="4DGS">
-                    <source src="./Videos/Our_bench/tree_4dgs_base_web.mp4">
-                </video>
-                <video playsinline autoplay muted loop vc-caption="4DGS + Ours">
-                    <source src="./Videos/Our_bench/tree_4dgs_ours_web.mp4">
-                </video>
-            </div>
+        <div class="vc-slider-container">
+          <video muted loop playsinline vc-caption="4DGS" data-src="./Videos/site/tree_4dgs_base_web.mp4"></video>
+          <video muted loop playsinline vc-caption="4DGS + Ours" data-src="./Videos/site/tree_4dgs_ours_web.mp4"></video>
         </div>
+      </div>
 
-        <div class="tab-content" data-tab="underwater">
-            <h2>4DGS - Underwater</h2>
-            <p>Move your mouse or touch the screen to slide the white divider line.</p>
-            <div class="vc-slider-container">
-                <video playsinline autoplay muted loop vc-caption="4DGS">
-                    <source src="./Videos/Our_bench/underwater_4dgs_base_web.mp4">
-                </video>
-                <video playsinline autoplay muted loop vc-caption="4DGS + Ours">
-                    <source src="./Videos/Our_bench/underwater_4dgs_ours_web.mp4">
-                </video>
-            </div>
+      <div class="panel" id="panel-underwater" role="tabpanel" aria-labelledby="tab-underwater" hidden>
+        <div class="panel-head">
+          <h3>Underwater</h3><span class="baseline">4DGS · our benchmark</span>
+          <p>Volumetric scattering and fluid motion.</p>
         </div>
-
-        <div class="tab-content" data-tab="cup">
-            <h2>CEM-4DGS - Cup</h2>
-            <p>Move your mouse or touch the screen to slide the white divider line.</p>
-            <div class="vc-slider-container">
-                <video playsinline autoplay muted loop vc-caption="CEM-4DGS">
-                    <source src="./Videos/Our_bench/cup_cem4dgs_base.mp4">
-                </video>
-                <video playsinline autoplay muted loop vc-caption="CEM-4DGS + Ours">
-                    <source src="./Videos/Our_bench/cup_cem4dgs_ours.mp4">
-                </video>
-            </div>
+        <div class="vc-slider-container">
+          <video muted loop playsinline vc-caption="4DGS" data-src="./Videos/site/underwater_4dgs_base_web.mp4"></video>
+          <video muted loop playsinline vc-caption="4DGS + Ours" data-src="./Videos/site/underwater_4dgs_ours_web.mp4"></video>
         </div>
+      </div>
 
-        <div class="tab-content" data-tab="neon">
-            <h2>CEM-4DGS - Neon</h2>
-            <p>Move your mouse or touch the screen to slide the white divider line.</p>
-            <div class="vc-slider-container">
-                <video playsinline autoplay muted loop vc-caption="CEM-4DGS">
-                    <source src="./Videos/Our_bench/neon_22_cem4dgs_base.mp4">
-                </video>
-                <video playsinline autoplay muted loop vc-caption="CEM-4DGS + Ours">
-                    <source src="./Videos/Our_bench/neon_22_cem4dgs_ours.mp4">
-                </video>
-            </div>
+      <div class="panel" id="panel-cup" role="tabpanel" aria-labelledby="tab-cup" hidden>
+        <div class="panel-head">
+          <h3>Cup</h3><span class="baseline">CEM-4DGS · our benchmark</span>
+          <p>Fluid poured into a glass; caustics and refraction.</p>
         </div>
-
-        <div class="tab-content" data-tab="alley-cem">
-            <h2>CEM-4DGS - Alley</h2>
-            <p>Move your mouse or touch the screen to slide the white divider line.</p>
-            <div class="vc-slider-container">
-                <video playsinline autoplay muted loop vc-caption="CEM-4DGS">
-                    <source src="./Videos/Our_bench/alley_cem4dgs_base_web.mp4">
-                </video>
-                <video playsinline autoplay muted loop vc-caption="CEM-4DGS + Ours">
-                    <source src="./Videos/Our_bench/alley_cem4dgs_ours_web.mp4">
-                </video>
-            </div>
+        <div class="vc-slider-container">
+          <video muted loop playsinline vc-caption="CEM-4DGS" data-src="./Videos/site/cup_cem4dgs_base.mp4"></video>
+          <video muted loop playsinline vc-caption="CEM-4DGS + Ours" data-src="./Videos/site/cup_cem4dgs_ours.mp4"></video>
         </div>
+      </div>
 
-
-        <div class="tab-content" data-tab="alley-4dgs">
-            <h2>4DGS - Alley</h2>
-            <p>Move your mouse or touch the screen to slide the white divider line.</p>
-            <div class="vc-slider-container">
-                <video playsinline autoplay muted loop vc-caption="4DGS">
-                    <source src="./Videos/Our_bench/alley_4dgs_base_web.mp4">
-                </video>
-                <video playsinline autoplay muted loop vc-caption="4DGS + Ours">
-                    <source src="./Videos/Our_bench/alley_4dgs_ours_web.mp4">
-                </video>
-            </div>
+      <div class="panel" id="panel-neon" role="tabpanel" aria-labelledby="tab-neon" hidden>
+        <div class="panel-head">
+          <h3>Neon city</h3><span class="baseline">CEM-4DGS · our benchmark</span>
+          <p>Night street with emissive signage; a lighting- and appearance-driven scene.</p>
         </div>
-
-
-
-
-        <div class="tab-content" data-tab="bouncy_balls">
-            <h2>4DGS - Bouncy balls</h2>
-            <p>Move your mouse or touch the screen to slide the white divider line.</p>
-            <div class="vc-slider-container">
-                <video playsinline autoplay muted loop vc-caption="4DGS">
-                    <source src="./Videos/Our_bench/bouncy_balls_4dgs_base_web.mp4">
-                </video>
-                <video playsinline autoplay muted loop vc-caption="4DGS + Ours">
-                    <source src="./Videos/Our_bench/bouncy_balls_4dgs_ours_web.mp4">
-                </video>
-            </div>
+        <div class="vc-slider-container">
+          <video muted loop playsinline vc-caption="CEM-4DGS" data-src="./Videos/site/neon_22_cem4dgs_base.mp4"></video>
+          <video muted loop playsinline vc-caption="CEM-4DGS + Ours" data-src="./Videos/site/neon_22_cem4dgs_ours.mp4"></video>
         </div>
+      </div>
 
-        <div class="tab-content" data-tab="flame_steak">
-            <h2>4D-Scaffold - Flame steak</h2>
-            <p>Move your mouse or touch the screen to slide the white divider line.</p>
-            <div class="vc-slider-container">
-                <video playsinline autoplay muted loop vc-caption="4D-Scaffold">
-                    <source src="./Videos/N3DV/flame_steak_base_web.mp4">
-                </video>
-                <video playsinline autoplay muted loop vc-caption="4D-Scaffold + Ours">
-                    <source src="./Videos/N3DV/flame_steak_ours_web.mp4">
-                </video>
-            </div>
+      <div class="panel" id="panel-alley-cem" role="tabpanel" aria-labelledby="tab-alley-cem" hidden>
+        <div class="panel-head">
+          <h3>Alley</h3><span class="baseline">CEM-4DGS · our benchmark</span>
+          <p>Street scene with reflective ground and moving geometry.</p>
         </div>
-
-        <div class="tab-content" data-tab="coffee_martini">
-            <h2>4DGS - Coffee martini</h2>
-            <p>Move your mouse or touch the screen to slide the white divider line.</p>
-            <div class="vc-slider-container">
-                <video playsinline autoplay muted loop vc-caption="4DGS">
-                    <source src="./Videos/N3DV/coffee_martini_4dgs_base_web.mp4">
-                </video>
-                <video playsinline autoplay muted loop vc-caption="4DGS + Ours">
-                    <source src="./Videos/N3DV/coffee_martini_4dgs_ours_web.mp4">
-                </video>
-            </div>
+        <div class="vc-slider-container">
+          <video muted loop playsinline vc-caption="CEM-4DGS" data-src="./Videos/site/alley_cem4dgs_base_web.mp4"></video>
+          <video muted loop playsinline vc-caption="CEM-4DGS + Ours" data-src="./Videos/site/alley_cem4dgs_ours_web.mp4"></video>
         </div>
+      </div>
 
+      <div class="panel" id="panel-alley-4dgs" role="tabpanel" aria-labelledby="tab-alley-4dgs" hidden>
+        <div class="panel-head">
+          <h3>Alley</h3><span class="baseline">4DGS · our benchmark</span>
+          <p>The same scene against a second baseline.</p>
+        </div>
+        <div class="vc-slider-container">
+          <video muted loop playsinline vc-caption="4DGS" data-src="./Videos/site/alley_4dgs_base_web.mp4"></video>
+          <video muted loop playsinline vc-caption="4DGS + Ours" data-src="./Videos/site/alley_4dgs_ours_web.mp4"></video>
+        </div>
+      </div>
 
+      <div class="panel" id="panel-bouncy" role="tabpanel" aria-labelledby="tab-bouncy" hidden>
+        <div class="panel-head">
+          <h3>Bouncy balls</h3><span class="baseline">4DGS · our benchmark</span>
+          <p>Sparse scene content with fast rigid motion.</p>
+        </div>
+        <div class="vc-slider-container">
+          <video muted loop playsinline vc-caption="4DGS" data-src="./Videos/site/bouncy_balls_4dgs_base_web.mp4"></video>
+          <video muted loop playsinline vc-caption="4DGS + Ours" data-src="./Videos/site/bouncy_balls_4dgs_ours_web.mp4"></video>
+        </div>
+      </div>
 
+      <div class="panel" id="panel-flame" role="tabpanel" aria-labelledby="tab-flame" hidden>
+        <div class="panel-head">
+          <h3>Flame steak</h3><span class="baseline">4D-Scaffold · Neural 3D Video</span>
+          <p>Dynamic appearance with smoke and flames.</p>
+        </div>
+        <div class="vc-slider-container">
+          <video muted loop playsinline vc-caption="4D-Scaffold" data-src="./Videos/site/flame_steak_base_web.mp4"></video>
+          <video muted loop playsinline vc-caption="4D-Scaffold + Ours" data-src="./Videos/site/flame_steak_ours_web.mp4"></video>
+        </div>
+      </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            hljs.highlightAll();
-            
-            // Add tab functionality
-            const tabButtons = document.querySelectorAll('.tab-button');
-            const tabContents = document.querySelectorAll('.tab-content');
-            
-            tabButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    const tabName = button.dataset.tab;
-                    
-                    // Update active states
-                    tabButtons.forEach(btn => btn.classList.remove('active'));
-                    tabContents.forEach(content => content.classList.remove('active'));
-                    
-                    button.classList.add('active');
-                    document.querySelector(`.tab-content[data-tab="${tabName}"]`).classList.add('active');
-                });
-            });
-        });
-    </script>
+      <div class="panel" id="panel-coffee" role="tabpanel" aria-labelledby="tab-coffee" hidden>
+        <div class="panel-head">
+          <h3>Coffee martini</h3><span class="baseline">4DGS · Neural 3D Video</span>
+          <p>Indoor activity sequence from the public benchmark.</p>
+        </div>
+        <div class="vc-slider-container">
+          <video muted loop playsinline vc-caption="4DGS" data-src="./Videos/site/coffee_martini_4dgs_base_web.mp4"></video>
+          <video muted loop playsinline vc-caption="4DGS + Ours" data-src="./Videos/site/coffee_martini_4dgs_ours_web.mp4"></video>
+        </div>
+      </div>
+    </div>
+    <p class="viewer-hint">
+      If a clip does not load, the full side-by-side and ground-truth videos are available
+      in the <code>Videos/</code> directory of the repository.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================= dataset -->
+<section id="dataset">
+  <div class="wrap">
+    <h2>A benchmark for dynamic Gaussian Splatting</h2>
+    <p class="section-intro">
+      Existing dynamic benchmarks do not stress reconstruction enough: their motion is
+      small relative to the camera baseline, or their appearance is largely static. We
+      introduce six synthetic scenes — hand-animated or entirely simulated — with large
+      spatio-temporal divergence, rendered with path tracing in Blender so that ground
+      truth is exact. They raise the bar for the available methods, including ours.
+    </p>
+
+    <dl class="stats">
+      <div class="stat"><dt>Scenes</dt><dd>6</dd></div>
+      <div class="stat"><dt>Frames</dt><dd>300 <span>per scene</span></dd></div>
+      <div class="stat"><dt>Duration</dt><dd>10 s <span>at 30 fps</span></dd></div>
+      <div class="stat"><dt>Cameras</dt><dd>25–45 <span>semi- to full-circle rigs</span></dd></div>
+      <div class="stat"><dt>Resolution</dt><dd>1600 &times; 900</dd></div>
+      <div class="stat"><dt>Test views</dt><dd>1–4 <span>per scene</span></dd></div>
+    </dl>
+
+    <figure>
+      <img src="./figures/dataset-scenes.jpg"
+           alt="Six still frames, one per scene, arranged in a two by three grid: a box of coloured spheres, an autumn tree on a hill, an underwater seabed with a ray, a neon night street, a back-yard alley, and water poured into a glass cup."
+           width="2000" height="761" loading="lazy" decoding="async">
+      <figcaption>
+        <b>Figure 3. Still frames from the benchmark.</b> Six scenes, each an animation of
+        300 frames, from 25 to 45 cameras arranged in semicircular to full 360° rigs. The
+        scenes cover complex geometry, fluid simulation, atmospherics, particles and
+        caustics; every scene has between one and four held-out test views.
+      </figcaption>
+    </figure>
+
+    <div class="scene-grid" style="margin-top:2.4rem">
+      <article class="scene">
+        <div class="scene-media">
+          <video muted loop playsinline preload="none" poster="./figures/posters/alley_gt.jpg" data-src="./Videos/previews/alley_gt.mp4"></video>
+          <div class="scene-pending">Ground-truth clip coming soon</div>
+        </div>
+        <div class="scene-body">
+          <h3>Alley</h3>
+          <p>Street scene with reflective ground and moving geometry.</p>
+        </div>
+      </article>
+
+      <article class="scene">
+        <div class="scene-media">
+          <video muted loop playsinline preload="none" poster="./figures/posters/tree_gt.jpg" data-src="./Videos/previews/tree_gt.mp4"></video>
+          <div class="scene-pending">Ground-truth clip coming soon</div>
+        </div>
+        <div class="scene-body">
+          <h3>Windy tree</h3>
+          <p>Vegetation in motion, with outdoor atmospherics.</p>
+        </div>
+      </article>
+
+      <article class="scene">
+        <div class="scene-media">
+          <video muted loop playsinline preload="none" poster="./figures/posters/cup_gt.jpg" data-src="./Videos/previews/cup_gt.mp4"></video>
+          <div class="scene-pending">Ground-truth clip coming soon</div>
+        </div>
+        <div class="scene-body">
+          <h3>Water cup</h3>
+          <p>Fluid poured into a glass cup; caustics and refraction.</p>
+        </div>
+      </article>
+
+      <article class="scene">
+        <div class="scene-media">
+          <video muted loop playsinline preload="none" poster="./figures/posters/neon_gt.jpg" data-src="./Videos/previews/neon_gt.mp4"></video>
+          <div class="scene-pending">Ground-truth clip coming soon</div>
+        </div>
+        <div class="scene-body">
+          <h3>Neon city</h3>
+          <p>Night street with emissive signage; lighting- and appearance-driven.</p>
+        </div>
+      </article>
+
+      <article class="scene">
+        <div class="scene-media">
+          <video muted loop playsinline preload="none" poster="./figures/posters/bouncy_balls_gt.jpg" data-src="./Videos/previews/bouncy_balls_gt.mp4"></video>
+          <div class="scene-pending">Ground-truth clip coming soon</div>
+        </div>
+        <div class="scene-body">
+          <h3>Bouncy balls</h3>
+          <p>Sparse scene content with fast rigid motion.</p>
+        </div>
+      </article>
+
+      <article class="scene is-pending">
+        <div class="scene-media">
+          <video muted loop playsinline preload="none" data-src="./Videos/previews/underwater_gt.mp4"></video>
+          <div class="scene-pending">Ground-truth clip coming soon</div>
+        </div>
+        <div class="scene-body">
+          <h3>Underwater</h3>
+          <p>Volumetric scattering and fluid motion.</p>
+        </div>
+      </article>
+    </div>
+
+    <p class="small muted" style="margin-top:1.6rem;max-width:74ch">
+      Ground-truth clips above are downscaled previews; the full 1600&times;900 path-traced
+      sequences, camera rigs and held-out views ship with the dataset release. The paper
+      also reports that our method is not uniformly better on every scene: for the
+      lighting- and appearance-driven scenes the gains are smaller, and on
+      <i>bouncy balls</i> the sparse content favours different hyperparameters.
+    </p>
+  </div>
+</section>
+
+<!-- ======================================================= qualitative -->
+<section id="qualitative">
+  <div class="wrap">
+    <h2>Qualitative comparison</h2>
+    <p class="section-intro">
+      Baselines against the same baselines with truncated gradients, on our benchmark and
+      on the Neural 3D Video benchmark.
+    </p>
+        <figure>
+          <img src="./figures/qualitative-dynamic.jpg"
+               alt="Grid of cropped comparisons across the alley, windy tree and underwater scenes of our benchmark and the flame steak scene of Neural 3D Video, comparing baselines against our method."
+               width="2000" height="1146" loading="lazy" decoding="async">
+          <figcaption>
+            <b>Figure 4. Dynamic reconstruction, with contours.</b> From left to right:
+            <i>alley</i>, <i>windy tree</i> and <i>underwater</i> from our benchmark, and
+            <i>flame steak</i> from Neural 3D Video.
+          </figcaption>
+        </figure>
+        <figure>
+          <img src="./figures/qualitative-ours-1.jpg"
+               alt="Qualitative comparison across rows for the underwater, bouncy balls and windy tree scenes."
+               width="1800" height="1810" loading="lazy" decoding="async">
+          <figcaption>
+            <b>Figure 5. Our benchmark, scenes 1–3.</b> From top to bottom:
+            <i>underwater</i>, <i>bouncy balls</i> and <i>windy tree</i>. Baselines show
+            floaters, blurring or missing structures where our method recovers the motion and
+            the geometry.
+          </figcaption>
+        </figure>
+        <figure>
+          <img src="./figures/qualitative-ours-2.jpg"
+               alt="Qualitative comparison across rows for the neon city, alley and cup scenes."
+               width="1800" height="1810" loading="lazy" decoding="async">
+          <figcaption>
+            <b>Figure 6. Our benchmark, scenes 4–6.</b> From top to bottom:
+            <i>neon city</i>, <i>alley</i> and <i>cup</i>.
+          </figcaption>
+        </figure>
+  </div>
+</section>
+
+<!-- ============================================================= results -->
+<section id="results">
+  <div class="wrap">
+    <h2>Results</h2>
+    <p class="section-intro">
+      Evaluated on static and dynamic scenes, indoors and outdoors, against public
+      benchmarks and our own: Mip-NeRF360 and the Neural 3D Video benchmark, plus a static
+      subset of our scenes. Our formulation is applied on top of existing baselines with
+      minimal modifications.
+    </p>
+
+    <div class="tables">
+      <div class="table-block">
+        <h3>Static scene reconstruction</h3>
+        <p class="table-note">
+          Mip-NeRF360 and the static subset of our benchmark, under random and COLMAP
+          initialization. Best value per column and per initialization setting is
+          <b style="color:var(--accent)">in bold</b>; rows for our method are tinted.
+          Our method improves quality in every setting and tends to produce more compact
+          representations, at the cost of longer training — the <i>Train</i> column is
+          reported for reference and is not marked.
+        </p>
+        <div class="table-scroll">
+<table class="results">
+<caption class="sr-only">Static scene reconstruction on OurBench and Mip-NeRF360 under random and COLMAP initialization.</caption>
+<thead>
+<tr><th class="col-method" rowspan="2">Method</th><th class="group-head" colspan="5">OurBench</th><th class="group-head" colspan="5">Mip-NeRF360</th></tr>
+<tr><th class="metric">LPIPS ↓</th><th class="metric">SSIM ↑</th><th class="metric">PSNR ↑</th><th class="metric">Train ↓</th><th class="metric">#GS ↓</th><th class="metric">LPIPS ↓</th><th class="metric">SSIM ↑</th><th class="metric">PSNR ↑</th><th class="metric">Train ↓</th><th class="metric">#GS ↓</th></tr>
+</thead><tbody>
+<tr class="group"><td colspan="11">Random initialization</td></tr>
+<tr><td class="method">3DGS</td><td class="num">0.2106</td><td class="num">0.8351</td><td class="num">24.74</td><td class="num">14 min</td><td class="num">1.126M</td><td class="num">0.3481</td><td class="num">0.6718</td><td class="num">20.92</td><td class="num">27 min</td><td class="num">1.180M</td></tr>
+<tr class="ours"><td class="method">3DGS + Ours</td><td class="num best">0.1974</td><td class="num best">0.8511</td><td class="num best">25.16</td><td class="num">55 min</td><td class="num best">0.799M</td><td class="num best">0.3343</td><td class="num best">0.6933</td><td class="num best">22.18</td><td class="num">56 min</td><td class="num best">0.971M</td></tr>
+<tr><td class="method">2DGS</td><td class="num">0.4354</td><td class="num">0.4960</td><td class="num">18.80</td><td class="num">23 min</td><td class="num">1.231M</td><td class="num">0.3943</td><td class="num">0.6391</td><td class="num">19.82</td><td class="num">34 min</td><td class="num">1.511M</td></tr>
+<tr class="ours"><td class="method">2DGS + Ours</td><td class="num">0.3883</td><td class="num">0.6624</td><td class="num">20.70</td><td class="num">33 min</td><td class="num">1.446M</td><td class="num">0.3886</td><td class="num">0.6547</td><td class="num">20.33</td><td class="num">55 min</td><td class="num">1.071M</td></tr>
+<tr class="group"><td colspan="11">COLMAP initialization</td></tr>
+<tr><td class="method">3DGS</td><td class="num">0.1270</td><td class="num">0.9058</td><td class="num">30.07</td><td class="num">9 min</td><td class="num">1.217M</td><td class="num best">0.2149</td><td class="num best">0.8212</td><td class="num">27.70</td><td class="num">21 min</td><td class="num">2.496M</td></tr>
+<tr class="ours"><td class="method">3DGS + Ours</td><td class="num best">0.1245</td><td class="num best">0.9097</td><td class="num best">30.86</td><td class="num">43 min</td><td class="num best">0.768M</td><td class="num">0.2197</td><td class="num">0.8205</td><td class="num best">27.84</td><td class="num">86 min</td><td class="num best">2.035M</td></tr>
+<tr><td class="method">2DGS</td><td class="num">0.2017</td><td class="num">0.8378</td><td class="num">25.00</td><td class="num">23 min</td><td class="num">1.801M</td><td class="num">0.2342</td><td class="num">0.8117</td><td class="num">27.17</td><td class="num">44 min</td><td class="num">3.068M</td></tr>
+<tr class="ours"><td class="method">2DGS + Ours</td><td class="num">0.1962</td><td class="num">0.8444</td><td class="num">26.35</td><td class="num">32 min</td><td class="num">1.048M</td><td class="num">0.2403</td><td class="num">0.8104</td><td class="num">27.33</td><td class="num">80 min</td><td class="num">2.701M</td></tr>
+</tbody></table></div>
+
+      </div>
+
+      <div class="table-block">
+        <h3>Dynamic scene reconstruction</h3>
+        <p class="table-note">
+          All dynamic sequences are initialized from the first frame via COLMAP
+          reconstruction and optimized sequentially over time, which progressively
+          increases the optimization difficulty. Positive is up for SSIM and PSNR; lower is
+          better for LPIPS and the primitive count.
+        </p>
+        <div class="tables two-col">
+          <div class="table-block">
+<h3>Neural 3D Video</h3>
+<p class="table-note">Public benchmark: six 10-second indoor clips, 20 cameras, one test view.</p>
+<div class="table-scroll"><table class="results">
+<caption class="sr-only">Neural 3D Video</caption>
+<thead><tr><th class="col-method">Method</th><th class="metric">LPIPS ↓</th><th class="metric">SSIM ↑</th><th class="metric">PSNR ↑</th><th class="metric">#GS ↓</th></tr></thead><tbody>
+<tr><td class="method">4DGS</td><td class="num">0.1360</td><td class="num">0.9443</td><td class="num">30.22</td><td class="num">2.806M</td></tr>
+<tr class="ours"><td class="method">4DGS + Ours</td><td class="num">0.1339</td><td class="num">0.9493</td><td class="num">31.70</td><td class="num">1.733M</td></tr>
+<tr class="pair"><td class="method">CEM-4DGS</td><td class="num">0.1328</td><td class="num">0.9512</td><td class="num">32.07</td><td class="num best">0.331M</td></tr>
+<tr class="ours"><td class="method">CEM-4DGS + Ours</td><td class="num">0.1359</td><td class="num best">0.9519</td><td class="num best">32.29</td><td class="num">0.352M</td></tr>
+<tr class="pair"><td class="method">4D-Scaffold</td><td class="num best">0.1286</td><td class="num">0.9502</td><td class="num">31.83</td><td class="num">0.583M</td></tr>
+<tr class="ours"><td class="method">4D-Scaffold + Ours</td><td class="num">0.1311</td><td class="num">0.9487</td><td class="num">31.94</td><td class="num">0.556M</td></tr>
+</tbody></table></div></div>
+
+          <div class="table-block">
+<h3>Our benchmark</h3>
+<p class="table-note">φ and θ denote sparse and dense COLMAP initializations used as the starting point of the sequence.</p>
+<div class="table-scroll"><table class="results">
+<caption class="sr-only">Our benchmark</caption>
+<thead><tr><th class="col-method">Method</th><th class="metric">LPIPS ↓</th><th class="metric">SSIM ↑</th><th class="metric">PSNR ↑</th><th class="metric">#GS ↓</th></tr></thead><tbody>
+<tr><td class="method">4DGS (φ)</td><td class="num">0.2326</td><td class="num">0.8329</td><td class="num">25.47</td><td class="num">2.409M</td></tr>
+<tr class="ours"><td class="method">4DGS (φ) + Ours</td><td class="num">0.2035</td><td class="num">0.8574</td><td class="num">26.08</td><td class="num">1.715M</td></tr>
+<tr class="pair"><td class="method">4DGS (θ)</td><td class="num">0.2288</td><td class="num">0.8224</td><td class="num">26.02</td><td class="num">2.970M</td></tr>
+<tr class="ours"><td class="method">4DGS (θ) + Ours</td><td class="num best">0.1496</td><td class="num best">0.8923</td><td class="num best">27.56</td><td class="num">2.333M</td></tr>
+<tr class="pair"><td class="method">CEM-4DGS</td><td class="num">0.2767</td><td class="num">0.7855</td><td class="num">22.80</td><td class="num best">0.704M</td></tr>
+<tr class="ours"><td class="method">CEM-4DGS + Ours</td><td class="num">0.2670</td><td class="num">0.7845</td><td class="num">22.63</td><td class="num">0.824M</td></tr>
+</tbody></table></div></div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ citation -->
+<section id="citation">
+  <div class="wrap">
+    <h2>Citation</h2>
+    <p class="section-intro">
+      If you use the method or the benchmark, please cite the paper.
+    </p>
+    <div class="cite-wrap">
+      <button class="copy-btn" type="button">Copy</button>
+      <pre class="bibtex" id="bibtex">@inproceedings{morales2026truncgradgs,
+  title        = {TruncGradGS: Improved 3D Gaussian Splatting via Truncated Gradient Updates},
+  author       = {Morales, Th{\'e}o and Le-Pham, Nhat-Quynh and Atkins, Robin and Hua, Binh-Son},
+  booktitle    = {Proceedings of Pacific Graphics 2026},
+  year         = {2026},
+  publisher    = {The Eurographics Association},
+  eprint       = {2609.03534},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CV}
+}</pre>
+    </div>
+    <p class="cite-plain">
+      Théo Morales, Nhat-Quynh Le-Pham, Robin Atkins, and Binh-Son Hua.
+      <i>TruncGradGS: Improved 3D Gaussian Splatting via Truncated Gradient Updates.</i>
+      In Proceedings of Pacific Graphics 2026. The Eurographics Association, 2026.
+      Also available as
+      <a href="https://arxiv.org/abs/2609.03534">arXiv:2609.03534</a>.
+    </p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>
+      This work was supported by Research Ireland under the Research Ireland Frontiers for
+      the Future Programme — Project, award number 22/FFP-P/11522. We gratefully
+      acknowledge Adam Handschuh for creating most of the dataset scenes and assets, and
+      Dolby Laboratories, Inc. for funding the dataset.
+    </p>
+    <p>
+      Page content reflects the <a href="https://arxiv.org/abs/2609.03534">arXiv preprint</a>.
+      Comparison clips are downscaled from the full-resolution renders.
+    </p>
+  </div>
+</footer>
+
 </body>
 </html>
