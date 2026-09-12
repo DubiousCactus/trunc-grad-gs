@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic scene reconstruction - side-by-side comparison</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/html.min.js"></script>
+    <script src="./js/video-compare.min.js"></script>
+    <style>
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .demo-section {
+            margin-bottom: 40px;
+            max-width: 700px;
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        h1 {
+            padding-top: 1rem;
+            padding-bottom: 2rem;
+            padding-left: 4rem;
+            margin-bottom: 1rem;
+        }
+        h2 {
+            margin-bottom: 2rem;
+        }
+        pre {
+            background: #f6f8fa;
+            padding: 16px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .demo-container {
+            margin: 20px 0;
+        }
+        
+        /* Add new tab styles */
+        .tabs {
+            max-width: 700px;
+            margin: 20px auto;
+        }
+        
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .tab-button {
+            padding: 10px 20px;
+            border: none;
+            background: #f0f0f0;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        .tab-button.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Dynamic scene reconstruction - side-by-side comparison</h1>
+    </div>
+    
+    <div class="tabs">
+        <div class="tab-buttons">
+            <button class="tab-button active" data-tab="tree">Windy tree</button>
+            <button class="tab-button" data-tab="underwater">Underwater</button>
+            <button class="tab-button" data-tab="cup">Cup</button>
+            <button class="tab-button" data-tab="neon">Neon</button>
+            <button class="tab-button" data-tab="alley-cem">Alley (1)</button>
+            <button class="tab-button" data-tab="alley-4dgs">Alley (2)</button>
+            <button class="tab-button" data-tab="bouncy_balls">Bouncy balls</button>
+            <button class="tab-button" data-tab="flame_steak">Flame steak</button>
+            <button class="tab-button" data-tab="coffee_martini">Coffee martini</button>
+        </div>
+
+        <div class="tab-content active" data-tab="tree">
+            <h2>4DGS - Windy tree</h2>
+            <p>Move your mouse or touch the screen to slide the white divider line.</p>
+            <div class="vc-slider-container">
+                <video playsinline autoplay muted loop vc-caption="4DGS">
+                    <source src="./Videos/Our_bench/tree_4dgs_base_web.mp4">
+                </video>
+                <video playsinline autoplay muted loop vc-caption="4DGS + Ours">
+                    <source src="./Videos/Our_bench/tree_4dgs_ours_web.mp4">
+                </video>
+            </div>
+        </div>
+
+        <div class="tab-content" data-tab="underwater">
+            <h2>4DGS - Underwater</h2>
+            <p>Move your mouse or touch the screen to slide the white divider line.</p>
+            <div class="vc-slider-container">
+                <video playsinline autoplay muted loop vc-caption="4DGS">
+                    <source src="./Videos/Our_bench/underwater_4dgs_base_web.mp4">
+                </video>
+                <video playsinline autoplay muted loop vc-caption="4DGS + Ours">
+                    <source src="./Videos/Our_bench/underwater_4dgs_ours_web.mp4">
+                </video>
+            </div>
+        </div>
+
+        <div class="tab-content" data-tab="cup">
+            <h2>CEM-4DGS - Cup</h2>
+            <p>Move your mouse or touch the screen to slide the white divider line.</p>
+            <div class="vc-slider-container">
+                <video playsinline autoplay muted loop vc-caption="CEM-4DGS">
+                    <source src="./Videos/Our_bench/cup_cem4dgs_base.mp4">
+                </video>
+                <video playsinline autoplay muted loop vc-caption="CEM-4DGS + Ours">
+                    <source src="./Videos/Our_bench/cup_cem4dgs_ours.mp4">
+                </video>
+            </div>
+        </div>
+
+        <div class="tab-content" data-tab="neon">
+            <h2>CEM-4DGS - Neon</h2>
+            <p>Move your mouse or touch the screen to slide the white divider line.</p>
+            <div class="vc-slider-container">
+                <video playsinline autoplay muted loop vc-caption="CEM-4DGS">
+                    <source src="./Videos/Our_bench/neon_22_cem4dgs_base.mp4">
+                </video>
+                <video playsinline autoplay muted loop vc-caption="CEM-4DGS + Ours">
+                    <source src="./Videos/Our_bench/neon_22_cem4dgs_ours.mp4">
+                </video>
+            </div>
+        </div>
+
+        <div class="tab-content" data-tab="alley-cem">
+            <h2>CEM-4DGS - Alley</h2>
+            <p>Move your mouse or touch the screen to slide the white divider line.</p>
+            <div class="vc-slider-container">
+                <video playsinline autoplay muted loop vc-caption="CEM-4DGS">
+                    <source src="./Videos/Our_bench/alley_cem4dgs_base_web.mp4">
+                </video>
+                <video playsinline autoplay muted loop vc-caption="CEM-4DGS + Ours">
+                    <source src="./Videos/Our_bench/alley_cem4dgs_ours_web.mp4">
+                </video>
+            </div>
+        </div>
+
+
+        <div class="tab-content" data-tab="alley-4dgs">
+            <h2>4DGS - Alley</h2>
+            <p>Move your mouse or touch the screen to slide the white divider line.</p>
+            <div class="vc-slider-container">
+                <video playsinline autoplay muted loop vc-caption="4DGS">
+                    <source src="./Videos/Our_bench/alley_4dgs_base_web.mp4">
+                </video>
+                <video playsinline autoplay muted loop vc-caption="4DGS + Ours">
+                    <source src="./Videos/Our_bench/alley_4dgs_ours_web.mp4">
+                </video>
+            </div>
+        </div>
+
+
+
+
+        <div class="tab-content" data-tab="bouncy_balls">
+            <h2>4DGS - Bouncy balls</h2>
+            <p>Move your mouse or touch the screen to slide the white divider line.</p>
+            <div class="vc-slider-container">
+                <video playsinline autoplay muted loop vc-caption="4DGS">
+                    <source src="./Videos/Our_bench/bouncy_balls_4dgs_base_web.mp4">
+                </video>
+                <video playsinline autoplay muted loop vc-caption="4DGS + Ours">
+                    <source src="./Videos/Our_bench/bouncy_balls_4dgs_ours_web.mp4">
+                </video>
+            </div>
+        </div>
+
+        <div class="tab-content" data-tab="flame_steak">
+            <h2>4D-Scaffold - Flame steak</h2>
+            <p>Move your mouse or touch the screen to slide the white divider line.</p>
+            <div class="vc-slider-container">
+                <video playsinline autoplay muted loop vc-caption="4D-Scaffold">
+                    <source src="./Videos/N3DV/flame_steak_base_web.mp4">
+                </video>
+                <video playsinline autoplay muted loop vc-caption="4D-Scaffold + Ours">
+                    <source src="./Videos/N3DV/flame_steak_ours_web.mp4">
+                </video>
+            </div>
+        </div>
+
+        <div class="tab-content" data-tab="coffee_martini">
+            <h2>4DGS - Coffee martini</h2>
+            <p>Move your mouse or touch the screen to slide the white divider line.</p>
+            <div class="vc-slider-container">
+                <video playsinline autoplay muted loop vc-caption="4DGS">
+                    <source src="./Videos/N3DV/coffee_martini_4dgs_base_web.mp4">
+                </video>
+                <video playsinline autoplay muted loop vc-caption="4DGS + Ours">
+                    <source src="./Videos/N3DV/coffee_martini_4dgs_ours_web.mp4">
+                </video>
+            </div>
+        </div>
+
+
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            hljs.highlightAll();
+            
+            // Add tab functionality
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabName = button.dataset.tab;
+                    
+                    // Update active states
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    
+                    button.classList.add('active');
+                    document.querySelector(`.tab-content[data-tab="${tabName}"]`).classList.add('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
