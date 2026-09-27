@@ -1,7 +1,10 @@
 # TruncGradGS — project page
 
 Static project page for *TruncGradGS: Improved 3D Gaussian Splatting via Truncated
-Gradient Updates* ([arXiv:2609.03534](https://arxiv.org/abs/2609.03534)).
+Gradient Updates* — **accepted to Pacific Graphics 2026**
+([arXiv:2609.03534](https://arxiv.org/abs/2609.03534)).
+
+Code: [github.com/trinity-graphics/truncgradgs](https://github.com/trinity-graphics/truncgradgs)
 
 Open `index.html` through a local web server (the comparison viewer loads clips over
 HTTP; opening the file directly with `file://` also works in most browsers):
@@ -14,8 +17,8 @@ python3 -m http.server 8000
 ## Layout
 
 ```
-index.html          the whole page: hero, overview, method, comparisons, benchmark,
-                    qualitative comparison, results, citation
+index.html          the whole page: hero, method, comparisons, benchmark,
+                    results, citation
 css/style.css       theme, layout and table styling
 js/main.js          lazy media loading, canvas wipe viewer, scroll spy, citation copy
 figures/            web-optimised figures and dataset poster frames

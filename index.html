@@ -10,6 +10,10 @@
 <meta property="og:description" content="A piecewise truncated gradient field that fixes the vanishing-gradient problem of tiled Gaussian rasterization, plus a new synthetic benchmark for dynamic Gaussian Splatting.">
 <meta property="og:type" content="article">
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+
 <link rel="stylesheet" href="./css/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
@@ -23,12 +27,10 @@
   <div class="wrap">
     <a class="nav-brand" href="#top">TruncGradGS</a>
     <nav class="nav-links" aria-label="Sections">
-      <a href="#overview">Overview</a>
       <a href="#method">Method</a>
       <a href="#comparisons">Comparisons</a>
       <a href="#dataset">Benchmark</a>
-      <a href="#qualitative">Qualitative</a>
-      <a href="#results">Results</a>
+      <a href="#qualitative">Results</a>
       <a href="#citation">Citation</a>
     </nav>
   </div>
@@ -39,7 +41,6 @@
 <!-- ===================================================== hero + abstract -->
 <section class="hero">
   <div class="wrap">
-    <p class="eyebrow">arXiv preprint &middot; September 2026</p>
     <h1 class="hero-title">TruncGradGS: Improved 3D Gaussian Splatting via
       <span class="title-accent">Truncated Gradient Updates</span></h1>
 
@@ -50,10 +51,11 @@
     <p class="affiliations">
       <sup>1</sup>Trinity College Dublin &nbsp;·&nbsp; <sup>2</sup>Dolby Laboratories
     </p>
+    <p class="eyebrow">Accepted to Pacific Graphics 2026</p>
 
     <div class="actions">
-      <a class="btn btn-primary" href="https://arxiv.org/abs/2609.03534">arXiv:2609.03534</a>
-      <span class="btn" aria-disabled="true">Code <span class="tag">Soon</span></span>
+      <a class="btn btn-primary" href="https://arxiv.org/abs/2609.03534">Paper</a>
+      <a class="btn" href="https://github.com/trinity-graphics/truncgradgs">Code</a>
       <span class="btn" aria-disabled="true">Dataset <span class="tag">Soon</span></span>
     </div>
 
@@ -74,23 +76,6 @@
       in both static and dynamic settings for the public benchmarks and our proposed
       dataset.
     </p>
-
-  </div>
-</section>
-
-<!-- ============================================================ overview -->
-<section id="overview">
-  <div class="wrap">
-    <h2>Overview</h2>
-    <div class="callout">
-      <p>
-        The method is a backward-pass change: it plugs into the rasterizer of an existing
-        Gaussian Splatting pipeline, adds no cost at inference, and improves both static
-        and dynamic reconstruction. We also introduce a six-scene, path-traced benchmark
-        for dynamic Gaussian Splatting — 300 frames per scene, 25–45 cameras and up to four
-        test views each — where the baselines fail on large spatio-temporal divergence.
-      </p>
-    </div>
   </div>
 </section>
 
@@ -98,10 +83,9 @@
 <section id="method">
   <div class="wrap">
     <h2>Method</h2>
-    <p class="section-intro">
-      We keep the true Gaussian derivative inside the splat isocontour and continue it with
-      a linear surrogate outside, so a primitive keeps receiving spatial gradients from
-      pixels far from its mean.
+    <p class="section-intro section-intro--full">
+      Keep the true Gaussian derivative inside the splat isocontour; continue it with a
+      linear surrogate outside so distant pixels still move the primitive.
     </p>
 
     <div class="eq">
@@ -114,13 +98,9 @@
          \end{cases} \]
     </div>
 
-    <p>
-      The cut-off is the isocontour of the density threshold \(\tau\), which we set to the
-      rasterizer's alpha discard threshold; the slope \(m\) controls how fast the surrogate
-      decays with distance. Because the field is piecewise linear and exponential, the only
-      possible discontinuity is at the boundary. We remove it by matching the surrogate to
-      the true derivative at the cut-off point \(x_b\), whose squared Mahalanobis distance
-      is fixed by \(\tau\):
+    <p class="method-note">
+      Cut-off \(\tau\) matches the rasterizer’s alpha discard; slope \(m\) sets far-field
+      decay. Matching at \(x_b\) keeps the field continuous:
     </p>
 
     <div class="eq">
@@ -133,27 +113,18 @@
     <div class="figure-row">
       <figure>
         <img src="./figures/truncated-gradient-field.png"
-             alt="Left: derivative of a 2D Gaussian with respect to its mean along x and y, nearly zero outside the splat. Right: the piecewise truncated gradient field, which keeps the true derivative inside the isocontour and follows a linear surrogate outside, giving a wider support with stronger far-field signals."
+             alt="Left: derivative of a 2D Gaussian nearly zero outside the splat. Right: truncated field with wider support."
              width="1400" height="1036" loading="lazy" decoding="async">
         <figcaption>
-          <b>Figure 1. The truncated gradient field.</b> A 2D Gaussian that splats at
-          the centre of the image. <i>Left:</i> derivative of the Gaussian with respect to
-          its mean on the <i>x</i> and <i>y</i> axes — near zero for any pixel outside the local
-          support. <i>Right:</i> our piecewise field for the same splat: the true Gaussian
-          derivative inside the isocontour, a linear surrogate outside, matched at the
-          contour boundary so the field stays continuous. The isocontour is set by a
-          density threshold.
+          <b>Figure 1.</b> True derivative (left) vs. truncated field (right) for the same splat.
         </figcaption>
       </figure>
       <figure>
         <img src="./figures/piecewise-gradient-1d.png"
-             alt="One-dimensional illustration: between the cut-off points the field follows the true partial derivative; beyond them it becomes a linear surrogate converging towards the true gradient."
+             alt="1D piecewise gradient: true derivative between cut-offs, linear surrogate beyond."
              width="1600" height="780" loading="lazy" decoding="async">
         <figcaption>
-          <b>Figure 2. Piecewise gradient in 1D.</b> Between the cut-off points the field
-          follows the true partial derivative; beyond them it becomes a linear surrogate
-          that converges back towards it. Matching the two pieces at the cut-off keeps the
-          field continuous.
+          <b>Figure 2.</b> 1D view: true derivative inside the cut-offs, linear surrogate outside.
         </figcaption>
       </figure>
     </div>
@@ -163,11 +134,9 @@
 <!-- ========================================================= comparisons -->
 <section id="comparisons">
   <div class="wrap">
-    <h2>Side-by-side comparisons</h2>
-    <p class="section-intro">
-      Squeeze-and-slide between a baseline and the same baseline with our truncated
-      gradient. Move your mouse or drag your finger across a clip to move the divider.
-      Each clip pair loops; nothing is streamed until you open a scene.
+    <h2>Comparisons</h2>
+    <p class="section-intro section-intro--full">
+      Drag across a clip to compare baseline vs.&nbsp;baseline&nbsp;+&nbsp;Ours. Clips load on demand.
     </p>
 
     <div class="viewer-frame">
@@ -186,7 +155,6 @@
       <div class="panel is-active" id="panel-tree" role="tabpanel" aria-labelledby="tab-tree">
         <div class="panel-head">
           <h3>Windy tree</h3><span class="baseline">4DGS · our benchmark</span>
-          <p>Vegetation in motion; thin structures and large parallax.</p>
         </div>
         <div class="vc-slider-container">
           <video muted loop playsinline vc-caption="4DGS" data-src="./Videos/site/tree_4dgs_base_web.mp4"></video>
@@ -197,7 +165,6 @@
       <div class="panel" id="panel-underwater" role="tabpanel" aria-labelledby="tab-underwater" hidden>
         <div class="panel-head">
           <h3>Underwater</h3><span class="baseline">4DGS · our benchmark</span>
-          <p>Volumetric scattering and fluid motion.</p>
         </div>
         <div class="vc-slider-container">
           <video muted loop playsinline vc-caption="4DGS" data-src="./Videos/site/underwater_4dgs_base_web.mp4"></video>
@@ -208,7 +175,6 @@
       <div class="panel" id="panel-cup" role="tabpanel" aria-labelledby="tab-cup" hidden>
         <div class="panel-head">
           <h3>Cup</h3><span class="baseline">CEM-4DGS · our benchmark</span>
-          <p>Fluid poured into a glass; caustics and refraction.</p>
         </div>
         <div class="vc-slider-container">
           <video muted loop playsinline vc-caption="CEM-4DGS" data-src="./Videos/site/cup_cem4dgs_base.mp4"></video>
@@ -219,7 +185,6 @@
       <div class="panel" id="panel-neon" role="tabpanel" aria-labelledby="tab-neon" hidden>
         <div class="panel-head">
           <h3>Neon city</h3><span class="baseline">CEM-4DGS · our benchmark</span>
-          <p>Night street with emissive signage; a lighting- and appearance-driven scene.</p>
         </div>
         <div class="vc-slider-container">
           <video muted loop playsinline vc-caption="CEM-4DGS" data-src="./Videos/site/neon_22_cem4dgs_base.mp4"></video>
@@ -230,7 +195,6 @@
       <div class="panel" id="panel-alley-cem" role="tabpanel" aria-labelledby="tab-alley-cem" hidden>
         <div class="panel-head">
           <h3>Alley</h3><span class="baseline">CEM-4DGS · our benchmark</span>
-          <p>Street scene with reflective ground and moving geometry.</p>
         </div>
         <div class="vc-slider-container">
           <video muted loop playsinline vc-caption="CEM-4DGS" data-src="./Videos/site/alley_cem4dgs_base_web.mp4"></video>
@@ -241,7 +205,6 @@
       <div class="panel" id="panel-alley-4dgs" role="tabpanel" aria-labelledby="tab-alley-4dgs" hidden>
         <div class="panel-head">
           <h3>Alley</h3><span class="baseline">4DGS · our benchmark</span>
-          <p>The same scene against a second baseline.</p>
         </div>
         <div class="vc-slider-container">
           <video muted loop playsinline vc-caption="4DGS" data-src="./Videos/site/alley_4dgs_base_web.mp4"></video>
@@ -252,7 +215,6 @@
       <div class="panel" id="panel-bouncy" role="tabpanel" aria-labelledby="tab-bouncy" hidden>
         <div class="panel-head">
           <h3>Bouncy balls</h3><span class="baseline">4DGS · our benchmark</span>
-          <p>Sparse scene content with fast rigid motion.</p>
         </div>
         <div class="vc-slider-container">
           <video muted loop playsinline vc-caption="4DGS" data-src="./Videos/site/bouncy_balls_4dgs_base_web.mp4"></video>
@@ -263,7 +225,6 @@
       <div class="panel" id="panel-flame" role="tabpanel" aria-labelledby="tab-flame" hidden>
         <div class="panel-head">
           <h3>Flame steak</h3><span class="baseline">4D-Scaffold · Neural 3D Video</span>
-          <p>Dynamic appearance with smoke and flames.</p>
         </div>
         <div class="vc-slider-container">
           <video muted loop playsinline vc-caption="4D-Scaffold" data-src="./Videos/site/flame_steak_base_web.mp4"></video>
@@ -274,7 +235,6 @@
       <div class="panel" id="panel-coffee" role="tabpanel" aria-labelledby="tab-coffee" hidden>
         <div class="panel-head">
           <h3>Coffee martini</h3><span class="baseline">4DGS · Neural 3D Video</span>
-          <p>Indoor activity sequence from the public benchmark.</p>
         </div>
         <div class="vc-slider-container">
           <video muted loop playsinline vc-caption="4DGS" data-src="./Videos/site/coffee_martini_4dgs_base_web.mp4"></video>
@@ -282,186 +242,149 @@
         </div>
       </div>
     </div>
-    <p class="viewer-hint">
-      If a clip does not load, the full side-by-side and ground-truth videos are available
-      in the <code>Videos/</code> directory of the repository.
-    </p>
   </div>
 </section>
 
 <!-- ============================================================= dataset -->
 <section id="dataset">
   <div class="wrap">
-    <h2>A benchmark for dynamic Gaussian Splatting</h2>
-    <p class="section-intro">
-      Existing dynamic benchmarks do not stress reconstruction enough: their motion is
-      small relative to the camera baseline, or their appearance is largely static. We
-      introduce six synthetic scenes — hand-animated or entirely simulated — with large
-      spatio-temporal divergence, rendered with path tracing in Blender so that ground
-      truth is exact. They raise the bar for the available methods, including ours.
+    <h2>Benchmark</h2>
+    <p class="section-intro section-intro--full">
+      Six path-traced synthetic scenes with large spatio-temporal divergence — motion that
+      public dynamic benchmarks rarely stress.
     </p>
 
     <dl class="stats">
       <div class="stat"><dt>Scenes</dt><dd>6</dd></div>
-      <div class="stat"><dt>Frames</dt><dd>300 <span>per scene</span></dd></div>
-      <div class="stat"><dt>Duration</dt><dd>10 s <span>at 30 fps</span></dd></div>
-      <div class="stat"><dt>Cameras</dt><dd>25–45 <span>semi- to full-circle rigs</span></dd></div>
-      <div class="stat"><dt>Resolution</dt><dd>1600 &times; 900</dd></div>
-      <div class="stat"><dt>Test views</dt><dd>1–4 <span>per scene</span></dd></div>
+      <div class="stat"><dt>Frames</dt><dd>300 <span>/ scene</span></dd></div>
+      <div class="stat"><dt>Duration</dt><dd>10 s <span>@ 30 fps</span></dd></div>
+      <div class="stat"><dt>Cameras</dt><dd>25–45</dd></div>
+      <div class="stat"><dt>Resolution</dt><dd>1600 × 900</dd></div>
+      <div class="stat"><dt>Test views</dt><dd>1–4 <span>/ scene</span></dd></div>
     </dl>
 
     <figure>
       <img src="./figures/dataset-scenes.jpg"
-           alt="Six still frames, one per scene, arranged in a two by three grid: a box of coloured spheres, an autumn tree on a hill, an underwater seabed with a ray, a neon night street, a back-yard alley, and water poured into a glass cup."
+           alt="Still frames from six benchmark scenes."
            width="2000" height="761" loading="lazy" decoding="async">
       <figcaption>
-        <b>Figure 3. Still frames from the benchmark.</b> Six scenes, each an animation of
-        300 frames, from 25 to 45 cameras arranged in semicircular to full 360° rigs. The
-        scenes cover complex geometry, fluid simulation, atmospherics, particles and
-        caustics; every scene has between one and four held-out test views.
+        <b>Figure 3.</b> Still frames — fluids, foliage, night lighting, particles, and caustics.
       </figcaption>
     </figure>
 
-    <div class="scene-grid" style="margin-top:2.4rem">
+    <div class="scene-grid">
       <article class="scene">
         <div class="scene-media">
           <video muted loop playsinline preload="none" poster="./figures/posters/alley_gt.jpg" data-src="./Videos/previews/alley_gt.mp4"></video>
-          <div class="scene-pending">Ground-truth clip coming soon</div>
+          <div class="scene-pending">Coming soon</div>
         </div>
         <div class="scene-body">
           <h3>Alley</h3>
-          <p>Street scene with reflective ground and moving geometry.</p>
+          <p>Reflective ground, moving geometry</p>
         </div>
       </article>
 
       <article class="scene">
         <div class="scene-media">
           <video muted loop playsinline preload="none" poster="./figures/posters/tree_gt.jpg" data-src="./Videos/previews/tree_gt.mp4"></video>
-          <div class="scene-pending">Ground-truth clip coming soon</div>
+          <div class="scene-pending">Coming soon</div>
         </div>
         <div class="scene-body">
           <h3>Windy tree</h3>
-          <p>Vegetation in motion, with outdoor atmospherics.</p>
+          <p>Vegetation and outdoor atmospherics</p>
         </div>
       </article>
 
       <article class="scene">
         <div class="scene-media">
           <video muted loop playsinline preload="none" poster="./figures/posters/cup_gt.jpg" data-src="./Videos/previews/cup_gt.mp4"></video>
-          <div class="scene-pending">Ground-truth clip coming soon</div>
+          <div class="scene-pending">Coming soon</div>
         </div>
         <div class="scene-body">
           <h3>Water cup</h3>
-          <p>Fluid poured into a glass cup; caustics and refraction.</p>
+          <p>Pouring fluid, caustics, refraction</p>
         </div>
       </article>
 
       <article class="scene">
         <div class="scene-media">
           <video muted loop playsinline preload="none" poster="./figures/posters/neon_gt.jpg" data-src="./Videos/previews/neon_gt.mp4"></video>
-          <div class="scene-pending">Ground-truth clip coming soon</div>
+          <div class="scene-pending">Coming soon</div>
         </div>
         <div class="scene-body">
           <h3>Neon city</h3>
-          <p>Night street with emissive signage; lighting- and appearance-driven.</p>
+          <p>Emissive night lighting</p>
         </div>
       </article>
 
       <article class="scene">
         <div class="scene-media">
           <video muted loop playsinline preload="none" poster="./figures/posters/bouncy_balls_gt.jpg" data-src="./Videos/previews/bouncy_balls_gt.mp4"></video>
-          <div class="scene-pending">Ground-truth clip coming soon</div>
+          <div class="scene-pending">Coming soon</div>
         </div>
         <div class="scene-body">
           <h3>Bouncy balls</h3>
-          <p>Sparse scene content with fast rigid motion.</p>
+          <p>Sparse content, fast rigid motion</p>
         </div>
       </article>
 
       <article class="scene is-pending">
         <div class="scene-media">
           <video muted loop playsinline preload="none" data-src="./Videos/previews/underwater_gt.mp4"></video>
-          <div class="scene-pending">Ground-truth clip coming soon</div>
+          <div class="scene-pending">Coming soon</div>
         </div>
         <div class="scene-body">
           <h3>Underwater</h3>
-          <p>Volumetric scattering and fluid motion.</p>
+          <p>Volumetric scattering and fluid</p>
         </div>
       </article>
     </div>
-
-    <p class="small muted" style="margin-top:1.6rem;max-width:74ch">
-      Ground-truth clips above are downscaled previews; the full 1600&times;900 path-traced
-      sequences, camera rigs and held-out views ship with the dataset release. The paper
-      also reports that our method is not uniformly better on every scene: for the
-      lighting- and appearance-driven scenes the gains are smaller, and on
-      <i>bouncy balls</i> the sparse content favours different hyperparameters.
-    </p>
   </div>
 </section>
 
-<!-- ======================================================= qualitative -->
+<!-- ============================================ qualitative + quantitative -->
 <section id="qualitative">
   <div class="wrap">
-    <h2>Qualitative comparison</h2>
-    <p class="section-intro">
-      Baselines against the same baselines with truncated gradients, on our benchmark and
-      on the Neural 3D Video benchmark.
+    <h2>Results</h2>
+    <p class="section-intro section-intro--full">
+      Plug-in gains on Mip-NeRF360, Neural 3D Video, and our benchmark — better quality,
+      often fewer Gaussians. Best per column in <b class="accent">bold</b>; our rows tinted.
     </p>
-        <figure>
-          <img src="./figures/qualitative-dynamic.jpg"
-               alt="Grid of cropped comparisons across the alley, windy tree and underwater scenes of our benchmark and the flame steak scene of Neural 3D Video, comparing baselines against our method."
-               width="2000" height="1146" loading="lazy" decoding="async">
-          <figcaption>
-            <b>Figure 4. Dynamic reconstruction, with contours.</b> From left to right:
-            <i>alley</i>, <i>windy tree</i> and <i>underwater</i> from our benchmark, and
-            <i>flame steak</i> from Neural 3D Video.
-          </figcaption>
-        </figure>
+
+    <div class="qual-figures">
+      <figure>
+        <img src="./figures/qualitative-dynamic.jpg"
+             alt="Cropped comparisons on alley, windy tree, underwater, and flame steak."
+             width="2000" height="1146" loading="lazy" decoding="async">
+        <figcaption>
+          <b>Figure 4.</b> Dynamic crops — our benchmark and Neural 3D Video.
+        </figcaption>
+      </figure>
+      <div class="figure-row">
         <figure>
           <img src="./figures/qualitative-ours-1.jpg"
-               alt="Qualitative comparison across rows for the underwater, bouncy balls and windy tree scenes."
+               alt="Qualitative comparison for underwater, bouncy balls, and windy tree."
                width="1800" height="1810" loading="lazy" decoding="async">
           <figcaption>
-            <b>Figure 5. Our benchmark, scenes 1–3.</b> From top to bottom:
-            <i>underwater</i>, <i>bouncy balls</i> and <i>windy tree</i>. Baselines show
-            floaters, blurring or missing structures where our method recovers the motion and
-            the geometry.
+            <b>Figure 5.</b> Underwater, bouncy balls, windy tree.
           </figcaption>
         </figure>
         <figure>
           <img src="./figures/qualitative-ours-2.jpg"
-               alt="Qualitative comparison across rows for the neon city, alley and cup scenes."
+               alt="Qualitative comparison for neon city, alley, and cup."
                width="1800" height="1810" loading="lazy" decoding="async">
           <figcaption>
-            <b>Figure 6. Our benchmark, scenes 4–6.</b> From top to bottom:
-            <i>neon city</i>, <i>alley</i> and <i>cup</i>.
+            <b>Figure 6.</b> Neon city, alley, cup.
           </figcaption>
         </figure>
-  </div>
-</section>
+      </div>
+    </div>
 
-<!-- ============================================================= results -->
-<section id="results">
-  <div class="wrap">
-    <h2>Results</h2>
-    <p class="section-intro">
-      Evaluated on static and dynamic scenes, indoors and outdoors, against public
-      benchmarks and our own: Mip-NeRF360 and the Neural 3D Video benchmark, plus a static
-      subset of our scenes. Our formulation is applied on top of existing baselines with
-      minimal modifications.
-    </p>
-
-    <div class="tables">
+    <div class="tables" id="results">
       <div class="table-block">
-        <h3>Static scene reconstruction</h3>
-        <p class="table-note">
-          Mip-NeRF360 and the static subset of our benchmark, under random and COLMAP
-          initialization. Best value per column and per initialization setting is
-          <b style="color:var(--accent)">in bold</b>; rows for our method are tinted.
-          Our method improves quality in every setting and tends to produce more compact
-          representations, at the cost of longer training — the <i>Train</i> column is
-          reported for reference and is not marked.
+        <h3>Static</h3>
+        <p class="table-note table-note--full">
+          Random and COLMAP init on OurBench and Mip-NeRF360. Train time is reference-only.
         </p>
         <div class="table-scroll">
 <table class="results">
@@ -481,49 +404,43 @@
 <tr><td class="method">2DGS</td><td class="num">0.2017</td><td class="num">0.8378</td><td class="num">25.00</td><td class="num">23 min</td><td class="num">1.801M</td><td class="num">0.2342</td><td class="num">0.8117</td><td class="num">27.17</td><td class="num">44 min</td><td class="num">3.068M</td></tr>
 <tr class="ours"><td class="method">2DGS + Ours</td><td class="num">0.1962</td><td class="num">0.8444</td><td class="num">26.35</td><td class="num">32 min</td><td class="num">1.048M</td><td class="num">0.2403</td><td class="num">0.8104</td><td class="num">27.33</td><td class="num">80 min</td><td class="num">2.701M</td></tr>
 </tbody></table></div>
-
       </div>
 
       <div class="table-block">
-        <h3>Dynamic scene reconstruction</h3>
-        <p class="table-note">
-          All dynamic sequences are initialized from the first frame via COLMAP
-          reconstruction and optimized sequentially over time, which progressively
-          increases the optimization difficulty. Positive is up for SSIM and PSNR; lower is
-          better for LPIPS and the primitive count.
+        <h3>Dynamic</h3>
+        <p class="table-note table-note--full">
+          Sequential COLMAP init from the first frame. φ / θ = sparse / dense start on OurBench.
         </p>
         <div class="tables two-col">
           <div class="table-block">
-<h3>Neural 3D Video</h3>
-<p class="table-note">Public benchmark: six 10-second indoor clips, 20 cameras, one test view.</p>
-<div class="table-scroll"><table class="results">
-<caption class="sr-only">Neural 3D Video</caption>
-<thead><tr><th class="col-method">Method</th><th class="metric">LPIPS ↓</th><th class="metric">SSIM ↑</th><th class="metric">PSNR ↑</th><th class="metric">#GS ↓</th></tr></thead><tbody>
-<tr><td class="method">4DGS</td><td class="num">0.1360</td><td class="num">0.9443</td><td class="num">30.22</td><td class="num">2.806M</td></tr>
-<tr class="ours"><td class="method">4DGS + Ours</td><td class="num">0.1339</td><td class="num">0.9493</td><td class="num">31.70</td><td class="num">1.733M</td></tr>
-<tr class="pair"><td class="method">CEM-4DGS</td><td class="num">0.1328</td><td class="num">0.9512</td><td class="num">32.07</td><td class="num best">0.331M</td></tr>
-<tr class="ours"><td class="method">CEM-4DGS + Ours</td><td class="num">0.1359</td><td class="num best">0.9519</td><td class="num best">32.29</td><td class="num">0.352M</td></tr>
-<tr class="pair"><td class="method">4D-Scaffold</td><td class="num best">0.1286</td><td class="num">0.9502</td><td class="num">31.83</td><td class="num">0.583M</td></tr>
-<tr class="ours"><td class="method">4D-Scaffold + Ours</td><td class="num">0.1311</td><td class="num">0.9487</td><td class="num">31.94</td><td class="num">0.556M</td></tr>
-</tbody></table></div></div>
+            <h3>Neural 3D Video</h3>
+            <div class="table-scroll"><table class="results">
+            <caption class="sr-only">Neural 3D Video</caption>
+            <thead><tr><th class="col-method">Method</th><th class="metric">LPIPS ↓</th><th class="metric">SSIM ↑</th><th class="metric">PSNR ↑</th><th class="metric">#GS ↓</th></tr></thead><tbody>
+            <tr><td class="method">4DGS</td><td class="num">0.1360</td><td class="num">0.9443</td><td class="num">30.22</td><td class="num">2.806M</td></tr>
+            <tr class="ours"><td class="method">4DGS + Ours</td><td class="num">0.1339</td><td class="num">0.9493</td><td class="num">31.70</td><td class="num">1.733M</td></tr>
+            <tr class="pair"><td class="method">CEM-4DGS</td><td class="num">0.1328</td><td class="num">0.9512</td><td class="num">32.07</td><td class="num best">0.331M</td></tr>
+            <tr class="ours"><td class="method">CEM-4DGS + Ours</td><td class="num">0.1359</td><td class="num best">0.9519</td><td class="num best">32.29</td><td class="num">0.352M</td></tr>
+            <tr class="pair"><td class="method">4D-Scaffold</td><td class="num best">0.1286</td><td class="num">0.9502</td><td class="num">31.83</td><td class="num">0.583M</td></tr>
+            <tr class="ours"><td class="method">4D-Scaffold + Ours</td><td class="num">0.1311</td><td class="num">0.9487</td><td class="num">31.94</td><td class="num">0.556M</td></tr>
+            </tbody></table></div>
+          </div>
 
           <div class="table-block">
-<h3>Our benchmark</h3>
-<p class="table-note">φ and θ denote sparse and dense COLMAP initializations used as the starting point of the sequence.</p>
-<div class="table-scroll"><table class="results">
-<caption class="sr-only">Our benchmark</caption>
-<thead><tr><th class="col-method">Method</th><th class="metric">LPIPS ↓</th><th class="metric">SSIM ↑</th><th class="metric">PSNR ↑</th><th class="metric">#GS ↓</th></tr></thead><tbody>
-<tr><td class="method">4DGS (φ)</td><td class="num">0.2326</td><td class="num">0.8329</td><td class="num">25.47</td><td class="num">2.409M</td></tr>
-<tr class="ours"><td class="method">4DGS (φ) + Ours</td><td class="num">0.2035</td><td class="num">0.8574</td><td class="num">26.08</td><td class="num">1.715M</td></tr>
-<tr class="pair"><td class="method">4DGS (θ)</td><td class="num">0.2288</td><td class="num">0.8224</td><td class="num">26.02</td><td class="num">2.970M</td></tr>
-<tr class="ours"><td class="method">4DGS (θ) + Ours</td><td class="num best">0.1496</td><td class="num best">0.8923</td><td class="num best">27.56</td><td class="num">2.333M</td></tr>
-<tr class="pair"><td class="method">CEM-4DGS</td><td class="num">0.2767</td><td class="num">0.7855</td><td class="num">22.80</td><td class="num best">0.704M</td></tr>
-<tr class="ours"><td class="method">CEM-4DGS + Ours</td><td class="num">0.2670</td><td class="num">0.7845</td><td class="num">22.63</td><td class="num">0.824M</td></tr>
-</tbody></table></div></div>
-
+            <h3>Our benchmark</h3>
+            <div class="table-scroll"><table class="results">
+            <caption class="sr-only">Our benchmark</caption>
+            <thead><tr><th class="col-method">Method</th><th class="metric">LPIPS ↓</th><th class="metric">SSIM ↑</th><th class="metric">PSNR ↑</th><th class="metric">#GS ↓</th></tr></thead><tbody>
+            <tr><td class="method">4DGS (φ)</td><td class="num">0.2326</td><td class="num">0.8329</td><td class="num">25.47</td><td class="num">2.409M</td></tr>
+            <tr class="ours"><td class="method">4DGS (φ) + Ours</td><td class="num">0.2035</td><td class="num">0.8574</td><td class="num">26.08</td><td class="num">1.715M</td></tr>
+            <tr class="pair"><td class="method">4DGS (θ)</td><td class="num">0.2288</td><td class="num">0.8224</td><td class="num">26.02</td><td class="num">2.970M</td></tr>
+            <tr class="ours"><td class="method">4DGS (θ) + Ours</td><td class="num best">0.1496</td><td class="num best">0.8923</td><td class="num best">27.56</td><td class="num">2.333M</td></tr>
+            <tr class="pair"><td class="method">CEM-4DGS</td><td class="num">0.2767</td><td class="num">0.7855</td><td class="num">22.80</td><td class="num best">0.704M</td></tr>
+            <tr class="ours"><td class="method">CEM-4DGS + Ours</td><td class="num">0.2670</td><td class="num">0.7845</td><td class="num">22.63</td><td class="num">0.824M</td></tr>
+            </tbody></table></div>
+          </div>
         </div>
       </div>
-
     </div>
   </div>
 </section>
@@ -532,9 +449,6 @@
 <section id="citation">
   <div class="wrap">
     <h2>Citation</h2>
-    <p class="section-intro">
-      If you use the method or the benchmark, please cite the paper.
-    </p>
     <div class="cite-wrap">
       <button class="copy-btn" type="button">Copy</button>
       <pre class="bibtex" id="bibtex">@inproceedings{morales2026truncgradgs,
@@ -548,13 +462,6 @@
   primaryClass = {cs.CV}
 }</pre>
     </div>
-    <p class="cite-plain">
-      Théo Morales, Nhat-Quynh Le-Pham, Robin Atkins, and Binh-Son Hua.
-      <i>TruncGradGS: Improved 3D Gaussian Splatting via Truncated Gradient Updates.</i>
-      In Proceedings of Pacific Graphics 2026. The Eurographics Association, 2026.
-      Also available as
-      <a href="https://arxiv.org/abs/2609.03534">arXiv:2609.03534</a>.
-    </p>
   </div>
 </section>
 
@@ -563,14 +470,8 @@
 <footer>
   <div class="wrap">
     <p>
-      This work was supported by Research Ireland under the Research Ireland Frontiers for
-      the Future Programme — Project, award number 22/FFP-P/11522. We gratefully
-      acknowledge Adam Handschuh for creating most of the dataset scenes and assets, and
-      Dolby Laboratories, Inc. for funding the dataset.
-    </p>
-    <p>
-      Page content reflects the <a href="https://arxiv.org/abs/2609.03534">arXiv preprint</a>.
-      Comparison clips are downscaled from the full-resolution renders.
+      Supported by Research Ireland (22/FFP-P/11522). Dataset scenes by Adam Handschuh;
+      funded by Dolby Laboratories, Inc.
     </p>
   </div>
 </footer>
